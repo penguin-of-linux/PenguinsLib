@@ -15,5 +15,24 @@
         {
 
         }
+
+        public bool Equals(Circle other)
+        {
+            return Center.Equals(other.Center) && R.Equal(other.R);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            return obj is Circle && Equals((Circle) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (Center.GetHashCode() * 397) ^ R.GetHashCode();
+            }
+        }
     }
 }

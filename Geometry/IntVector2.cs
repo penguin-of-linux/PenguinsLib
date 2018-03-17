@@ -56,6 +56,11 @@ namespace Geometry
             return new IntVector2(x, y);
         }
 
+        public override string ToString()
+        {
+            return $"{X} {Y}";
+        }
+
         public override bool Equals(object other)
         {
             if (other is IntVector2 vector2)

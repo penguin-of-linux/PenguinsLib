@@ -16,5 +16,24 @@
         {
 
         }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (Begin.GetHashCode() * 397) ^ End.GetHashCode();
+            }
+        }
+
+        public bool Equals(Segment other)
+        {
+            return Begin.Equals(other.Begin) && End.Equals(other.End);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            return obj is Segment && Equals((Segment) obj);
+        }
     }
 }
