@@ -59,5 +59,24 @@ namespace Geometry
             new Segment(V2.X, V1.Y, V2.X, V2.Y),
             new Segment(V1.X, V2.Y, V2.X, V2.Y)
         };
+
+        public bool Equals(SimplifiedRectangle other)
+        {
+            return V1.Equals(other.V1) && V2.Equals(other.V2);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            return obj is SimplifiedRectangle && Equals((SimplifiedRectangle)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (V1.GetHashCode() * 397) ^ V2.GetHashCode();
+            }
+        }
     }
 }

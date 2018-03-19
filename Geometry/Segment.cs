@@ -17,6 +17,11 @@
 
         }
 
+        public override string ToString()
+        {
+            return $"{Begin}, {End}";
+        }
+
         public override int GetHashCode()
         {
             unchecked

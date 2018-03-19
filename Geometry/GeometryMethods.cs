@@ -6,6 +6,31 @@ namespace Geometry
     public static class GeometryMethods
     {
         /// <summary>
+        /// Ищет разницу между a1 и a2, против часовой стрелки
+        /// </summary>
+        /// <returns></returns>
+        public static double GetAnglesDifference(double a1, double a2)
+        {
+            a1 = GetNormalizedAngle(a1);
+            a2 = GetNormalizedAngle(a2);
+
+            if (a1 > a2)
+            {
+                var cw = a1 - a2; // clockwise
+                var ccw = 2 * Math.PI - cw; // counter cw
+
+                return cw < ccw ? -cw : ccw;
+            }
+            else
+            {
+                var ccw = a2 - a1;
+                var cw = 2 * Math.PI - ccw;
+
+                return cw < ccw ? -cw : ccw;
+            }
+        }
+
+        /// <summary>
         /// Расстояние между двумя точками на плоскости.
         /// </summary>
         public static double GetDistance(Vector2 v1, Vector2 v2)
@@ -115,6 +140,14 @@ namespace Geometry
 
                 return distToBegin < distToEnd ? segment.Begin : segment.End;
             }
+        }
+
+        /// <summary>
+        /// Возвращает угол, эквивалентный данному, в пределах от [0, 2P)
+        /// </summary>
+        public static double GetNormalizedAngle(double a)
+        {
+            return a - Math.Floor(a / (2 * Math.PI)) * 2 * Math.PI;
         }
 
         /// <summary>
@@ -296,13 +329,33 @@ namespace Geometry
             // todo: переделать на простой Rectangle
 
             foreach (var rect in rectangles)
-            foreach (var seg in rect.Segments)
             {
-                if (segment.Equals(seg))
-                    return true;
-                if (GetSegmentsIntersection(seg, segment, includeBorders).HasValue)
-                    return true;
+                Vector2? fpoint = null;
+
+                foreach (var seg in rect.Segments)
+                {
+                    if (segment.Equals(seg))
+                        return true;
+
+                    var inter = GetSegmentsIntersection(seg, segment, true);
+
+                    if (!inter.HasValue)
+                        continue;
+
+                    if (fpoint == null)
+                    {
+                        fpoint = inter;
+                        if (includeBorders)
+                            return true;
+                    }
+                    else
+                    {
+                        if (!fpoint.Value.Equals(inter.Value))
+                            return true;
+                    }
+                }
             }
+
 
             return false;
         }

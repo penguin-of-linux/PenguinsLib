@@ -7,6 +7,9 @@ namespace Algorithms
 {
     public static class AlgorithmsMethods
     {
+        /// <summary>
+        /// Юзаем бфс :)
+        /// </summary>
         public static Vector2[] FindPathAmongRectangles(Vector2 start, Vector2 finish, params SimplifiedRectangle[] rectangles)
         {
             var searchRect = new SimplifiedRectangle(start, finish);
