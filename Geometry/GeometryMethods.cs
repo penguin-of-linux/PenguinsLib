@@ -6,6 +6,30 @@ namespace Geometry
     public static class GeometryMethods
     {
         /// <summary>
+        /// Возвращает угол между векторами против часовой стрелки.
+        /// </summary>
+        public static double GetAngleBetweenVectorCww(Vector2 v1, Vector2 v2)
+        {
+            var p = v1.X * v2.X + v1.Y * v2.Y;
+            var cos = p / (v1.Length * v2.Length);
+            var angle = Math.Acos(cos);
+
+            if (cos.Equal(1))
+                return 0;
+
+            if (cos.Equal(-1))
+                return Math.PI;
+
+            // векторное произведение векторов на плоскости в базисе [(1, 0), (0, 1)]
+            var c = new Vector3(0, 0, 1) * (v1.X * v2.Y - v2.X * v1.Y);
+
+            if (c.Z > 0)
+                return angle;
+
+            return 2 * Math.PI - angle;
+        }
+
+        /// <summary>
         /// Ищет разницу между a1 и a2, против часовой стрелки
         /// </summary>
         /// <returns></returns>
@@ -322,6 +346,11 @@ namespace Geometry
 
             return point.X.GreaterOrEqual(lspoint.X) && point.X.LessOrEqual(rspoint.X) &&
                    point.Y.GreaterOrEqual(bspoint.Y) && point.Y.LessOrEqual(tspoint.Y);
+        }
+
+        public static bool IsPointInsideSimplifiedRectangle(Vector2 point, SimplifiedRectangle rect)
+        {
+            return IsSimplifiedRectanglesInterescting(rect, new SimplifiedRectangle(point, point)); // :P смекалочка
         }
 
         public static bool IsSegmentIntersectingRectangles(Segment segment, SimplifiedRectangle[] rectangles, bool includeBorders = true)

@@ -116,5 +116,17 @@ namespace Tests
             Assert.True(double.IsNaN(intersection.Value.X));
             Assert.True(double.IsNaN(intersection.Value.Y));
         }
+
+        [TestCase(1, 0, 1, 1, Math.PI / 4, TestName = "(1, 0), (1, 1), P/4")]
+        [TestCase(1, 1, 1, 0, 2 * Math.PI - Math.PI / 4, TestName = "(1, 1), (1, 0), 7P/4")]
+        public void GetAngleBetweenVectorCww_TestCase(double x1, double y1, double x2, double y2, double exp)
+        {
+            var v1 = new Vector2(x1, y1);
+            var v2 = new Vector2(x2, y2);
+
+            var result = GeometryMethods.GetAngleBetweenVectorCww(v1, v2);
+
+            Assert.AreEqual(exp, result, 0.01);
+        }
     }
 }

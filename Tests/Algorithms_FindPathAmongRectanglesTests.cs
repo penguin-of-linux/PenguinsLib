@@ -68,5 +68,20 @@ namespace Tests
             ;
             //Assert.AreEqual(4, path.Length);
         }
+
+        [Test]
+        public void PathToRectMiddleFromItsVertext()
+        {
+            var rectangles = new SimplifiedRectangle[]
+            {
+                new SimplifiedRectangle(0, 0, 20, 20)
+            };
+            var start = new Vector2(0, 0);
+            var finish = new Vector2(10, 10);
+
+            var path = AlgorithmsMethods.FindPathAmongRectangles(start, finish, rectangles);
+
+            Assert.IsEmpty(path);
+        }
     }
 }

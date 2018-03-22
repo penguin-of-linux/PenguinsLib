@@ -12,6 +12,11 @@ namespace Algorithms
         /// </summary>
         public static Vector2[] FindPathAmongRectangles(Vector2 start, Vector2 finish, params SimplifiedRectangle[] rectangles)
         {
+            //var begInRect = GeometryMethods.IsPointInsideSimplifiedRectangle(start, rect);
+            //var endInRect = GeometryMethods.IsPointInsideSimplifiedRectangle(finish, rect);
+            //if (begInRect && !endInRect || !begInRect && endInRect)
+            //    return new Vector2[0];
+
             var searchRect = new SimplifiedRectangle(start, finish);
             rectangles = rectangles
                 .Where(e => GeometryMethods.IsSimplifiedRectanglesInterescting(searchRect, e))
