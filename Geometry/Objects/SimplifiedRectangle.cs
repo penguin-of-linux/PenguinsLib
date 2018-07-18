@@ -30,7 +30,7 @@ namespace Geometry
             Height = Math.Abs(y1 - y2);
         }
 
-        public bool HasPoint(Vector2 point, bool withInsides = false)
+        /*public bool HasPoint(Vector2 point, bool withInsides = false)
         {
             if (withInsides) throw new NotImplementedException("I am so lazy");
 
@@ -40,17 +40,17 @@ namespace Geometry
             if (point.Equals(new Vector2(V2.X, V1.Y))) return true;
 
             return false;
-        }
+        }*/
 
         public IEnumerable<Vector2> Vertexes => new[]
         {
             V1, V2, new Vector2(V1.X, V2.Y), new Vector2(V2.X, V1.Y)
         };
 
-        public bool HasPoint(double x, double y, bool withInsides = false)
+        /*public bool HasPoint(double x, double y, bool withInsides = false)
         {
             return HasPoint(new Vector2(x, y), withInsides);
-        }
+        }*/
 
         public Segment[] Segments => new[]
         {

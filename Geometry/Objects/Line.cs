@@ -10,6 +10,9 @@ namespace Geometry
 
         public Line(double a, double b, double c)
         {
+            if (a.Equal(0) && b.Equal(0))
+                throw new ArgumentException("A and B are equal 0");
+
             A = a;
             B = b;
             C = c;
@@ -45,14 +48,6 @@ namespace Geometry
 
         public Line(Segment seg) : this(seg.Begin, seg.End)
         {
-        }
-
-        public double? GetValue(double x)
-        {
-            if (B.Equal(0))
-                return null;
-
-            return (-C - A * x) / B;
         }
 
         public bool Equals(Line other)

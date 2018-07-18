@@ -10,6 +10,9 @@ namespace Tests
 {
     public class GeometryTests
     {
+        // Замечание: в большинстве тестов на пересечение проверяется только тип возвращаемого объекта, 
+        //т.к. все пересечения основаны на пересечении прямых. Пересечение прямых и отрезков проверяется нормально.
+
         [TestCase(0, 0, -1, 1, 2, 1, 0, 1, TestName = "Simple perpendicular")]
         [TestCase(0, 0, 1, 1, 2, 1, 1, 1, TestName = "Left seg point")]
         [TestCase(0, 0, -2, 1, 0, 1, 0, 1, TestName = "Right seg point")]
@@ -45,38 +48,85 @@ namespace Tests
             return GeometryMethods.IsSimplifiedRectanglesInterescting(rect1, rect2);
         }
 
-        [TestCase(0, 0, 0, 2, -1, 1, 1, 1, true, ExpectedResult = true, TestName = "Simple '+'")]
-        [TestCase(0, 0, 2, 0, 1, 0, 3, 0, true, ExpectedResult = true, TestName = "One common line")]
-        [TestCase(0, 0, 2, 0, 2, 0, 2, 2, true, ExpectedResult = true, TestName = "One common vertex")]
-        [TestCase(0, 0, 2, 0, 1, 1, 1, -1, false, ExpectedResult = true, TestName = "Include borders = false, result = true")]
-        [TestCase(0, 0, 2, 0, 2, 2, 4, 2, true, ExpectedResult = false, TestName = "Parallel")]
-        [TestCase(-10, -10, 0, -10, 5, 5, 3, 3, true, ExpectedResult = false, TestName = "Random numbers :)")]
-        [TestCase(0, 0, 2, 0, 2, 0, 3, 0, false, ExpectedResult = false, TestName = "Include borders = false, result = false")]
-        public bool GetSegmentsIntersection_TestCase(double x1, double y1, double x2, double y2, 
-            double x3, double y3, double x4, double y4, bool includeBorders)
+        [TestCase(0, 0, 0, 2, -1, 1, 1, 1, ExpectedResult = IntersectionResult.Point, TestName = "Simple '+'")]
+        [TestCase(0, 0, 2, 0, 1, 0, 3, 0, ExpectedResult = IntersectionResult.Segment, TestName = "One common line")]
+        [TestCase(0, 0, 2, 0, 2, 0, 2, 2, ExpectedResult = IntersectionResult.Point, TestName = "One common vertex, on line")]
+        [TestCase(0, 0, 0, 2, 0, 2, 3, 3, ExpectedResult = IntersectionResult.Point, TestName = "One common vertex, off line")]
+        [TestCase(0, 0, 2, 0, 2, 2, 4, 2, ExpectedResult = IntersectionResult.None, TestName = "Parallel OX")]
+        [TestCase(0, 0, 0, 2, 1, 0, 1, 2, ExpectedResult = IntersectionResult.None, TestName = "Parallel OY")]
+        [TestCase(0, 2, 2, 0, 0, 0, 2, 2, ExpectedResult = IntersectionResult.Point, TestName = "No simple '+'")]
+        [TestCase(0, 1, 1, 2, 0, 0, 42, -42, ExpectedResult = IntersectionResult.None, TestName = "Just NONE")]
+        public IntersectionResult GetSegmentsIntersection_TestCase(double x1, double y1, double x2, double y2, 
+            double x3, double y3, double x4, double y4)
         {
             var seg1 = new Segment(x1, y1, x2, y2);
             var seg2 = new Segment(x3, y3, x4, y4);
 
-            return GeometryMethods.GetSegmentsIntersection(seg1, seg2, includeBorders).HasValue;
+            return GeometryMethods.GetSegmentsIntersection(seg1, seg2, out var result);
         }
 
-        [TestCase(0, 0, 100, 100, false, 25, 25, 75, 75, ExpectedResult = true, TestName = "Simple diagonal, include = false")]
-        [TestCase(0, 0, 100, 100, false, 1, 1, 99, 10, ExpectedResult = true, TestName = "Simple, include = false")]
-        [TestCase(0, 0, 100, 100, true, 25, 25, 75, 75, ExpectedResult = true, TestName = "Simple diagonal, include = true")]
-        [TestCase(0, 0, 100, 100, true, 1, 1, 99, 10, ExpectedResult = true, TestName = "Simple, include = true")]
-        [TestCase(0, 0, 100, 100, true, 98, 10, 99, 12, ExpectedResult = false, TestName = "Simple, false, include = true")]
-        [TestCase(0, 0, 100, 100, false, 25, 25, 50, 10, ExpectedResult = false, TestName = "One point, include = false")]
-        [TestCase(0, 0, 100, 100, true, 25, 25, 50, 10, ExpectedResult = true, TestName = "One point, include = true")]
-        public bool IsSegmentIntersectingRectangles_TestCase(double x1, double y1, double x2, double y2,
-            bool includeBorders, params double[] numbers)
+        [TestCase(0, 0, 1, 0, 0, 1, 0, 0, ExpectedResult = IntersectionResult.Point, TestName = "+")]
+        [TestCase(0, 0, 1, 1, 0, 1, 1, 0, ExpectedResult = IntersectionResult.Point, TestName = "x")]
+        [TestCase(0, 0, 1, 0, 0, 1, 1, 1, ExpectedResult = IntersectionResult.None, TestName = "===")]
+        [TestCase(0, 0, 1, 0, -1, 0, 3, 0, ExpectedResult = IntersectionResult.Line, TestName = "----")]
+        [TestCase(0, 0, 0, 1, 1, 0, 1, 1, ExpectedResult = IntersectionResult.None, TestName = "||")]
+        [TestCase(0, 0, 0, 1, 0, 4, 0, 10, ExpectedResult = IntersectionResult.Line, TestName = "|")]
+        [TestCase(0, 0, 1, 1, 1, 0, 2, 1, ExpectedResult = IntersectionResult.None, TestName = "//")]
+        public IntersectionResult GetLinesIntersection_Type_TestCase(double x1, double y1, double x2, double y2, 
+            double x3, double y3, double x4, double y4)
         {
-            var seg = new Segment(new Vector2(x1, y1), new Vector2(x2, y2));
-            var rectangles = new List<SimplifiedRectangle>();
-            for(int i = 0; i < numbers.Length; i += 4)
-                rectangles.Add(new SimplifiedRectangle(numbers[i], numbers[i + 1], numbers[i + 2], numbers[i + 3]));
+            var line1 = new Line(x1, y1, x2, y2);
+            var line2 = new Line(x3, y3, x4, y4);
 
-            return GeometryMethods.IsSegmentIntersectingRectangles(seg, rectangles.ToArray(), includeBorders);
+            return GeometryMethods.GetLinesIntersection(line1, line2, out var result);
+        }
+
+        [TestCase(0, 0, 1, 0, 0, 1, 0, 0, 0, 0, TestName = "+")]
+        [TestCase(0, 0, 1, 1, -5, 3, -4, 2, -1, -1, TestName = @"\/")]
+        public void GetLinesIntersection_Value_TestCase(double x1, double y1, double x2, double y2,
+            double x3, double y3, double x4, double y4, double expx, double expy)
+        {
+            var line1 = new Line(x1, y1, x2, y2);
+            var line2 = new Line(x3, y3, x4, y4);
+
+            GeometryMethods.GetLinesIntersection(line1, line2, out var result);
+
+            Assert.AreEqual(new Vector2(expx, expy), (Vector2)result);
+        }
+
+        [TestCase(1, 0, 1, 0, ExpectedResult = true, TestName = "(1, 0) (1, 0)")]
+        [TestCase(1, 0, 2, 0, ExpectedResult = true, TestName = "(1, 0) (2, 0)")]
+        [TestCase(1, 0, 0, 1, ExpectedResult = false, TestName = "(1, 0) (0, 1)")]
+        public bool IsVectorCollinear_TestCase(double x1, double y1, double x2, double y2)
+        {
+            var v1 = new Vector2(x1, y1);
+            var v2 = new Vector2(x2, y2);
+
+            return GeometryMethods.IsVectorsCollinear(v1, v2);
+        }
+
+        [TestCase(false, 0, 2, 2, 2, 0, 0, 1, 1, ExpectedResult = IntersectionResult.None, TestName = "F, Not intersecting")]
+        [TestCase(true, 0, 2, 2, 2, 0, 0, 1, 1, ExpectedResult = IntersectionResult.None, TestName = "T, Not intersecting")]
+        [TestCase(false, -1, 0, 1, 2, 0, 0, 1, 1, ExpectedResult = IntersectionResult.Point, TestName = "F, Rect vertex")]
+        [TestCase(true, -1, 0, 1, 2, 0, 0, 1, 1, ExpectedResult = IntersectionResult.Point, TestName = "T, Rect vertex")]
+        [TestCase(false, 1, 3, 1, 1, 0, 0, 2, 2, ExpectedResult = IntersectionResult.Point, TestName = "F, One side inter")]
+        [TestCase(true, 1, 3, 1, 1, 0, 0, 2, 2, ExpectedResult = IntersectionResult.Segment, TestName = "T, One side inter")]
+        [TestCase(false, 1, 2, 1, 1, 0, 0, 2, 2, ExpectedResult = IntersectionResult.Point, TestName = "F, Seg begin on rect side")]
+        [TestCase(true, 1, 3, 1, 1, 0, 0, 2, 2, ExpectedResult = IntersectionResult.Segment, TestName = "T, Seg begin on rect side")]
+        [TestCase(false, 1, 1, 2, 1, 0, 0, 3, 3, ExpectedResult = IntersectionResult.None, TestName = "F, Seg full inside rect")]
+        [TestCase(true, 1, 1, 2, 1, 0, 0, 3, 3, ExpectedResult = IntersectionResult.Segment, TestName = "T, Seg full inside rect")]
+        [TestCase(false, 0, 0, 2, 2, 0, 0, 2, 2, ExpectedResult = IntersectionResult.Points, TestName = "F, Seg vertexes on rect")]
+        [TestCase(true, 0, 0, 2, 2, 0, 0, 2, 2, ExpectedResult = IntersectionResult.Segment, TestName = "T, Seg vertexes on rect")]
+        [TestCase(false, 0, 0, 2, 0, 0, 0, 2, 2, ExpectedResult = IntersectionResult.Segment, TestName = "F, Seg on rect side")]
+        [TestCase(true, 0, 0, 2, 0, 0, 0, 2, 2, ExpectedResult = IntersectionResult.Segment, TestName = "T, Seg on rect side")]
+
+        [TestCase(true, 0, 0, 75, 75, 25, 25, 75, 75, ExpectedResult = IntersectionResult.Segment, TestName = "T, LALALA")]
+        public IntersectionResult GetSegmentSimplifiedRectangleIntersection_TestCase(bool filled, params double[] nums)
+        {
+            var seg = new Segment(nums[0], nums[1], nums[2], nums[3]);
+            var rect = new SimplifiedRectangle(nums[4], nums[5], nums[6], nums[7]);
+
+            return GeometryMethods.GetSegmentSimplifiedRectangleIntersection(seg, rect, out var result, filled);
         }
 
         [TestCase(Math.PI, Math.PI, TestName = "P -> P")]
@@ -105,18 +155,6 @@ namespace Tests
             Assert.AreEqual(expected, result, 0.01);
         }
 
-        [Test]
-        public void Intersection_SameLinesReturns_NaN_and_NaN()
-        {
-            var line1 = new Line(1, 2, 3);
-            var line2 = new Line(2, 4, 6);
-
-            var intersection = GeometryMethods.GetLinesIntersection(line1, line2);
-
-            Assert.True(double.IsNaN(intersection.Value.X));
-            Assert.True(double.IsNaN(intersection.Value.Y));
-        }
-
         [TestCase(1, 0, 1, 1, Math.PI / 4, TestName = "(1, 0), (1, 1), P/4")]
         [TestCase(1, 1, 1, 0, 2 * Math.PI - Math.PI / 4, TestName = "(1, 1), (1, 0), 7P/4")]
         public void GetAngleBetweenVectorCww_TestCase(double x1, double y1, double x2, double y2, double exp)
@@ -127,6 +165,37 @@ namespace Tests
             var result = GeometryMethods.GetAngleBetweenVectorCww(v1, v2);
 
             Assert.AreEqual(exp, result, 0.01);
+        }
+
+        [TestCase(0, 0, 1, 1, 0, 0, 3, ExpectedResult = IntersectionResult.Point, TestName = "Circle center is ray begin")]
+        public IntersectionResult GetRayCircleIntersection(double x1, double y1, double x2, double y2, double xc, double yc, double r)
+        {
+            var ray = new Ray(new Vector2(x1, y1), new Vector2(x2, y2));
+            var circle = new Circle(xc, yc, r);
+
+            return GeometryMethods.GetRayCircleIntersection(ray, circle, out var _);
+        }
+
+        [Test]
+        public void GetLineCircleIntersection_NoPoints()
+        {
+            var line = new Line(0, 2, 1, 2);
+            var circle = new Circle(0, 0, 1);
+
+            var inter = GeometryMethods.GetLineCircleIntersection(line, circle, out var result);
+
+            Assert.AreEqual(IntersectionResult.None, inter);
+        }
+
+        [Test]
+        public void GetLineCircleIntersection_OnePoint()
+        {
+            var line = new Line(0, 1, 1, 1);
+            var circle = new Circle(0, 0, 1);
+
+            var inter = GeometryMethods.GetLineCircleIntersection(line, circle, out var result);
+
+            Assert.AreEqual(new Vector2(0, 1), (Vector2) result);
         }
     }
 }

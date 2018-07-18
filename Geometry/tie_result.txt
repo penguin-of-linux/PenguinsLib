@@ -1,9 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.Linq;
+using System.Collections.Generic;
 
-namespace Geometry
-{
+
+namespace FantasticBits {
+
+    public static class DoubleExtensions
+    {
+        public static bool Less(this double a, double b, double eps = 0.001)
+        {
+            return b - a > eps;
+        }
+        public static bool Greater(this double a, double b, double eps = 0.001)
+        {
+            return b.Less(a, eps);
+        }
+        public static bool Equal(this double a, double b, double eps = 0.001)
+        {
+            return !a.Less(b, eps) && !a.Greater(b, eps);
+        }
+        public static bool LessOrEqual(this double a, double b, double eps = 0.001)
+        {
+            return a.Less(b, eps) || a.Equal(b, eps);
+        }
+        public static bool GreaterOrEqual(this double a, double b, double eps = 0.001)
+        {
+            return a.Greater(b, eps) || a.Equal(b, eps);
+        }
+    }
+
     public static class GeometryMethods
     {
         /// <summary>
@@ -97,7 +122,7 @@ namespace Geometry
             }
 
             var d = Math.Sqrt(circle.R * circle.R + dist * dist);
-            var a = Math.Sqrt(d * d / (line.A * line.A + line.B * line.B));
+            var a = Math.Sqrt(d * d / (line.A * line.A + line.B + line.B));
             var v = new Vector2(a, a);
 
             result = new[] { ipoint + v, ipoint - v };
@@ -635,4 +660,535 @@ namespace Geometry
             return Math.Abs(cos).Equal(1);
         }
     }
+
+    /// <summary>
+    /// Тип пересечения фигур. Point - Vector2,  Points - Vector2[], None - null, остальные соответствуют классам
+    /// </summary>
+    public enum IntersectionResult
+    {
+        Point,
+        Points,
+        Line,
+        Segment,
+        Ray,
+        None
+    }
+
+    public struct Circle
+    {
+        public readonly Vector2 Center;
+        public readonly double R;
+
+        public Circle(Vector2 center, double r)
+        {
+            Center = center;
+            R = r;
+        }
+
+        public Circle(double x, double y, double r) : this(new Vector2(x, y), r)
+        {
+
+        }
+
+        public bool Equals(Circle other)
+        {
+            return Center.Equals(other.Center) && R.Equal(other.R);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            return obj is Circle && Equals((Circle) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (Center.GetHashCode() * 397) ^ R.GetHashCode();
+            }
+        }
+    }
+
+    public struct IntVector2
+    {
+        public double Length => Math.Sqrt(X * X + Y * Y);
+
+        public readonly int X;
+        public readonly int Y;
+
+        public IntVector2(int x, int y)
+        {
+            X = x;
+            Y = y;
+        }
+
+        public static IntVector2 operator +(IntVector2 v1, IntVector2 v2)
+        {
+            return new IntVector2(v1.X + v2.X, v1.Y + v2.Y);
+        }
+
+        public static IntVector2 operator -(IntVector2 v1, IntVector2 v2)
+        {
+            return v1 + (-v2);
+        }
+
+        public static IntVector2 operator -(IntVector2 v)
+        {
+            return new IntVector2(-v.X, -v.Y);
+        }
+
+        public static IntVector2 operator *(IntVector2 v, int k)
+        {
+            return new IntVector2(v.X * k, v.Y * k);
+        }
+
+        public static IntVector2 operator *(int k, IntVector2 v)
+        {
+            return v * k;
+        }
+
+        public static implicit operator IntVector2(Vector2 vec)
+        {
+            return new IntVector2((int)vec.X, (int)vec.Y);
+        }
+
+        public IntVector2 GetNormalized()
+        {
+            if (Length.Equal(0))
+                return new IntVector2(0, 0);
+
+            var x = (int)(X / Length);
+            var y = (int)(Y / Length);
+
+            return new IntVector2(x, y);
+        }
+
+        public override string ToString()
+        {
+            return $"{X} {Y}";
+        }
+
+        public override bool Equals(object other)
+        {
+            if (other is IntVector2 vector2)
+                return Equals(vector2);
+
+            if (other is Vector2 vec)
+                return Equals(vec);
+
+            return false;
+        }
+
+        private bool Equals(IntVector2 other)
+        {
+            return X == other.X && Y == other.Y;
+        }
+
+        private bool Equals(Vector2 other)
+        {
+            IntVector2 vec = other;
+            return Equals(vec);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return X.GetHashCode() * 397 + Y.GetHashCode() * 7;
+            }
+        }
+    }
+
+    public struct Line
+    {
+        public readonly double A;
+        public readonly double B;
+        public readonly double C;
+
+        public Line(double a, double b, double c)
+        {
+            if (a.Equal(0) && b.Equal(0))
+                throw new ArgumentException("A and B are equal 0");
+
+            A = a;
+            B = b;
+            C = c;
+        }
+
+        public Line(double x1, double y1, double x2, double y2)
+        {
+            if (x1.Equal(x2) && y1.Equal(y2))
+                throw new ArgumentException("Equivalent points");
+
+            A = y1 - y2;
+            B = x2 - x1;
+            C = x1 * y2 - x2 * y1;
+        }
+
+        public Line(Vector2 v1, Vector2 v2) : this(v1.X, v1.Y, v2.X, v2.Y)
+        {
+        }
+
+        public Line(Vector2 vector, double x, double y)
+        {
+            if (vector.X.Equal(0) && vector.Y.Equal(0))
+                throw new ArgumentException($"Vector cannot be zero");
+
+            A = vector.Y;
+            B = -vector.X;
+            C = vector.X * y - vector.Y * x;
+        }
+
+        public Line(Ray ray) : this(ray.Vector, ray.Begin.X, ray.Begin.Y)
+        {
+        }
+
+        public Line(Segment seg) : this(seg.Begin, seg.End)
+        {
+        }
+
+        public bool Equals(Line other)
+        {
+            return A.Equal(other.A) && B.Equal(other.B) && C.Equal(other.C);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            return obj is Line && Equals((Line)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = A.GetHashCode();
+                hashCode = (hashCode * 397) ^ B.GetHashCode();
+                hashCode = (hashCode * 397) ^ C.GetHashCode();
+                return hashCode;
+            }
+        }
+    }
+public struct Ray
+    {
+        public readonly Vector2 Begin;
+        public readonly Vector2 Vector;
+
+        public Ray(Vector2 begin, Vector2 vector)
+        {
+            Begin = begin;
+            Vector = vector;
+        }
+
+        public bool Equals(Ray other)
+        {
+            return Begin.Equals(other.Begin) && Vector.Equals(other.Vector);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            return obj is Ray && Equals((Ray)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (Begin.GetHashCode() * 397) ^ Vector.GetHashCode();
+            }
+        }
+    }
+
+    public struct Segment
+    {
+        public readonly Vector2 Begin;
+        public readonly Vector2 End;
+
+        public Vector2[] Points => new[] { Begin, End };
+
+        public Segment(Vector2 begin, Vector2 end)
+        {
+            Begin = begin;
+            End = end;
+        }
+
+        public Segment(double x1, double y1, double x2, double y2)
+            : this(new Vector2(x1, y1), new Vector2(x2, y2))
+        {
+
+        }
+
+        public override string ToString()
+        {
+            return $"{Begin}, {End}";
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (Begin.GetHashCode() * 397) ^ End.GetHashCode();
+            }
+        }
+
+        public bool Equals(Segment other)
+        {
+            return Begin.Equals(other.Begin) && End.Equals(other.End);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            return obj is Segment && Equals((Segment) obj);
+        }
+    }
+
+    public struct SimplifiedRectangle
+    {
+        public readonly Vector2 V1;
+        public readonly Vector2 V2;
+
+        public readonly double Height;
+        public readonly double Width;
+
+        /// <summary>
+        /// Rectangle with parallel to axis OY OX sides
+        /// </summary>
+        public SimplifiedRectangle(Vector2 v1, Vector2 v2) : this(v1.X, v1.Y, v2.X, v2.Y)
+        {
+        }
+
+        /// <summary>
+        /// Rectangle with parallel to axis OY OX sides
+        /// </summary>
+        public SimplifiedRectangle(double x1, double y1, double x2, double y2)
+        {
+            V1 = new Vector2(x1, y1);
+            V2 = new Vector2(x2, y2);
+
+            Width = Math.Abs(x1 - x2);
+            Height = Math.Abs(y1 - y2);
+        }
+
+        /*public bool HasPoint(Vector2 point, bool withInsides = false)
+        {
+            if (withInsides) throw new NotImplementedException("I am so lazy");
+
+            if (point.Equals(V1)) return true;
+            if (point.Equals(V2)) return true;
+            if (point.Equals(new Vector2(V1.X, V2.Y))) return true;
+            if (point.Equals(new Vector2(V2.X, V1.Y))) return true;
+
+            return false;
+        }*/
+
+        public IEnumerable<Vector2> Vertexes => new[]
+        {
+            V1, V2, new Vector2(V1.X, V2.Y), new Vector2(V2.X, V1.Y)
+        };
+
+        /*public bool HasPoint(double x, double y, bool withInsides = false)
+        {
+            return HasPoint(new Vector2(x, y), withInsides);
+        }*/
+
+        public Segment[] Segments => new[]
+        {
+            new Segment(V1.X, V1.Y, V2.X, V1.Y),
+            new Segment(V1.X, V1.Y, V1.X, V2.Y),
+            new Segment(V2.X, V1.Y, V2.X, V2.Y),
+            new Segment(V1.X, V2.Y, V2.X, V2.Y)
+        };
+
+        public bool Equals(SimplifiedRectangle other)
+        {
+            return V1.Equals(other.V1) && V2.Equals(other.V2);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            return obj is SimplifiedRectangle && Equals((SimplifiedRectangle)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (V1.GetHashCode() * 397) ^ V2.GetHashCode();
+            }
+        }
+    }
+
+    public struct Vector2
+    {
+        public double Length => Math.Sqrt(X * X + Y * Y);
+
+        public readonly double X;
+        public readonly double Y;
+
+        public Vector2(double x, double y)
+        {
+            X = x;
+            Y = y;
+        }
+
+        public static Vector2 operator +(Vector2 v1, Vector2 v2)
+        {
+            return new Vector2(v1.X + v2.X, v1.Y + v2.Y);
+        }
+
+        public static Vector2 operator -(Vector2 v1, Vector2 v2)
+        {
+            return v1 + (-v2);
+        }
+
+        public static Vector2 operator -(Vector2 v)
+        {
+            return new Vector2(-v.X, -v.Y);
+        }
+
+        public static Vector2 operator *(Vector2 v, double k)
+        {
+            return new Vector2(v.X * k, v.Y * k);
+        }
+
+        public static Vector2 operator *(double k, Vector2 v)
+        {
+            return v * k;
+        }
+
+        public static implicit operator Vector2(IntVector2 vec)
+        {
+            return new Vector2(vec.X, vec.Y);
+        }
+
+        public Vector2 GetNormalized()
+        {
+            if (Length.Equal(0))
+                return new Vector2(0, 0);
+
+            var x = X / Length;
+            var y = Y / Length;
+
+            return new Vector2(x, y);
+        }
+
+        public override string ToString()
+        {
+            return $"{X} {Y}";
+        }
+
+        public override bool Equals(object other)
+        {
+            if (other is Vector2 vector2)
+                return Equals(vector2);
+
+            if (other is IntVector2 intVector2)
+                return Equals(intVector2);
+
+            return false;
+        }
+
+        private bool Equals(Vector2 other)
+        {
+            return X.Equal(other.X) && Y.Equal(other.Y);
+        }
+
+        private bool Equals(IntVector2 other)
+        {
+            Vector2 vec = other;
+            return Equals(vec);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return X.GetHashCode() * 397 + Y.GetHashCode() * 7;
+            }
+        }
+    }
+
+    public struct Vector3
+    {
+        public double Length => Math.Sqrt(X * X + Y * Y + Z * Z);
+
+        public readonly double X;
+        public readonly double Y;
+        public readonly double Z;
+
+        public Vector3(double x, double y, double z)
+        {
+            X = x;
+            Y = y;
+            Z = z;
+        }
+
+        public static Vector3 operator +(Vector3 v1, Vector3 v2)
+        {
+            return new Vector3(v1.X + v2.X, v1.Y + v2.Y, v1.Z + v2.Z);
+        }
+
+        public static Vector3 operator -(Vector3 v1, Vector3 v2)
+        {
+            return v1 + (-v2);
+        }
+
+        public static Vector3 operator -(Vector3 v)
+        {
+            return new Vector3(-v.X, -v.Y, -v.Z);
+        }
+
+        public static Vector3 operator *(Vector3 v, double k)
+        {
+            return new Vector3(v.X * k, v.Y * k, v.Z * k);
+        }
+
+        public static Vector3 operator *(double k, Vector3 v)
+        {
+            return v * k;
+        }
+
+        public Vector3 GetNormalized()
+        {
+            if (Length.Equal(0))
+                return new Vector3(0, 0, 0);
+
+            var x = X / Length;
+            var y = Y / Length;
+            var z = Z / Length;
+
+            return new Vector3(x, y, z);
+        }
+
+        public override string ToString()
+        {
+            return $"{X} {Y} {Z}";
+        }
+
+        public override bool Equals(object other)
+        {
+            if (other is Vector3 vector3)
+                return Equals(vector3);
+
+            return false;
+        }
+
+        private bool Equals(Vector3 other)
+        {
+            return X.Equal(other.X) && Y.Equal(other.Y) && Z.Equal(other.Z);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return X.GetHashCode() * 397 + Y.GetHashCode() * 7 + Z.GetHashCode() * 13;
+            }
+        }
+    }
+
 }

@@ -16,6 +16,8 @@ namespace Algorithms
             //var endInRect = GeometryMethods.IsPointInsideSimplifiedRectangle(finish, rect);
             //if (begInRect && !endInRect || !begInRect && endInRect)
             //    return new Vector2[0];
+            if (rectangles.Length == 0)
+                return new Vector2[] { finish };
 
             var searchRect = new SimplifiedRectangle(start, finish);
             rectangles = rectangles
@@ -30,8 +32,9 @@ namespace Algorithms
             while (queue.Count > 0)
             {
                 var current = queue.Dequeue();
+                var seg = new Segment(current, finish);
 
-                if (!GeometryMethods.IsSegmentIntersectingRectangles(new Segment(current, finish), rectangles, false))
+                if (!rectangles.Any(r => IsSegmentIntersectingRectangle(seg, r)))
                 {
                     parent[finish] = current;
                     break;
@@ -42,6 +45,7 @@ namespace Algorithms
                     parent[n] = current;
                     visited.Add(n);
                     queue.Enqueue(n);
+                    // проверка на visited в GetNeighbors - для ускорения
                 }
             }
 
@@ -58,11 +62,13 @@ namespace Algorithms
 
         private static IEnumerable<Vector2> GetNeighbors(Vector2 point, SimplifiedRectangle[] rectangles, HashSet<Vector2> visited)
         {
+            // очень медленно :C
+
             var result = new List<Vector2>();
 
             foreach (var rect in rectangles)
             {
-                var hasPoint = rect.HasPoint(point);
+                var hasPoint = rect.Vertexes.Contains(point);
 
                 foreach (var v in rect.Vertexes)
                 {
@@ -76,13 +82,43 @@ namespace Algorithms
                     }
                     else
                     {
-                        if (!GeometryMethods.IsSegmentIntersectingRectangles(new Segment(point, v), rectangles, false))
-                            result.Add(v);
+                        var seg = new Segment(point, v);
+                        if (rectangles.Any(r => IsSegmentIntersectingRectangle(seg, r)))
+                            continue;
+
+                        result.Add(v);
                     }
                 }
             }
 
             return result;
+        }
+
+        private static bool IsSegmentIntersectingRectangle(Segment seg, SimplifiedRectangle rect)
+        {
+            var intersection =
+                GeometryMethods.GetSegmentSimplifiedRectangleIntersection(seg, rect, out var intres, true);
+
+            if (intersection == IntersectionResult.None)
+            {
+                return false;
+            }
+
+            if (intersection == IntersectionResult.Point)
+            {
+                if (intres.Equals(seg.Begin) || intres.Equals(seg.End))
+                    return false;
+            }
+
+            if (intersection == IntersectionResult.Points)
+            {
+                var points = (Vector2[])intres;
+                if (seg.Begin.Equals(points[0]) && seg.End.Equals(points[1]) ||
+                    seg.Begin.Equals(points[1]) && seg.End.Equals(points[0]))
+                    return false;
+            }
+
+            return true;
         }
     }
 }

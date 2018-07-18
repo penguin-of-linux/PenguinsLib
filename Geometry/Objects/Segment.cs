@@ -5,6 +5,8 @@
         public readonly Vector2 Begin;
         public readonly Vector2 End;
 
+        public Vector2[] Points => new[] { Begin, End };
+
         public Segment(Vector2 begin, Vector2 end)
         {
             Begin = begin;
